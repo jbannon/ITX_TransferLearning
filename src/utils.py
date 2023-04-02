@@ -4,6 +4,26 @@ import pandas as pd
 import sys
 from sklearn.base import BaseEstimator, TransformerMixin
 
+
+TCGA_NORMAL_MAP = {
+    'SKCM':['Skin - Sun Exposed (Lower leg)'], 
+    'STAD':['Stomach'],
+    'KIRC':['Kidney - Cortex'],
+    'BLCA':['Bladder']
+    }
+
+
+
+TCGA_NORMAL_MAP_Plus = {
+    'SKCM':['Skin - Not Sun Exposed (Suprapubic)', 'Skin - Sun Exposed (Lower leg]'], 
+    'STAD':['Stomach'],
+    'KIRC':['Kidney - Cortex','Kidney - Medulla'],
+    'BLCA':['Bladder']
+    }
+
+NANOSTRING_STUDIES = ['Chen 2016','Melero 2019','Prat 2017']
+
+
 def get_hallmark_genes(
     file_path:str
     )->List[str]:
@@ -21,6 +41,20 @@ def get_hallmark_genes(
     gene_set = list(set(gene_set))
     return gene_set
 
+
+
+def fetch_normal_expression_medians(
+    file_path:str,
+    tissues_to_keep:List[str] = ['Skin - Not Sun Exposed (Suprapubic)', 
+    'Skin - Sun Exposed (Lower leg)','Stomach','Kidney - Cortex','Kidney - Medulla','Bladder']
+    )-> pd.DataFrame:
+    
+
+    median_expression = pd.read_csv(file_path,sep="\t",skiprows=2)
+    if tissues_to_keep is not None:
+        median_expression = median_expression[["Name","Description"] + tissues_to_keep]
+    
+    return median_expression
 
 
 def fetch_pathway_commons_network(
@@ -85,29 +119,38 @@ def intersect_gene_sets(
     
 
 
-class GSPTransformer(BaseEstimator, TransformerMixin):
-    def __init__(self, 
-        GraphShiftOperator:str = None,
-        number_of_modes:str = None):
-        self.Valid_GSOs=['combinatorial','adjacency','normalized','ranwalk']
-        
-        assert GraphShiftOperator is not None 
-        assert GraphShiftOperator in self.Valid_GSOs
+def collect_GeneMANIA_genes(
+    file_path:str = "../data/raw/networks/GeneMANIA/identifier_mappings.txt"
+    ) -> List[str]:
+    gene_gene_interactions = pd.read_csv(file_path, sep="\t")
+    gene_names = list(pd.unique(gene_gene_interactions['Name']))
+    return gene_names
+    
 
 
-        return self
+def collect_PathwayCommons_genes(
+    file_path:str = "../data/raw/networks/PathwayCommons/PathwayCommons12.All.hgnc.sif",
+    interaction_type:str = 'interacts-with'
+    ) -> List[str]:
+    gene_gene_interactions = pd.read_csv(file_path,sep="\t",header=None,names = ['A','Interaction-Type','B'])
+    gene_gene_interactions = gene_gene_interactions[gene_gene_interactions['Interaction-Type']==interaction_type]
+    src_genes = set(pd.unique(gene_gene_interactions['A']))
+    dst_genes = set(pd.unique(gene_gene_interactions['B']))
+    gene_names = list(src_genes.union(dst_genes))
+    return gene_names
 
-    def fit(self, adj_matrix:np.array, X=None,y=None):
-        self.DegreeMatrix = np.diag(np.sum(adj_matrix),axis=1)
-        self.AdjacencyMatrix = adj_matrix
-        self.Laplacian = self.DegreeMatrix-self.AdjacencyMatrix
-        
+def collect_STRINGdb_genes(
+    interaction_file_path:str = "../data/raw/networks/STRINGdb/9606.protein.links.v11.5.txt",
+    annotation_file_path:str = "../data/raw/networks/STRINGdb/9606.protein.info.v11.5.txt",
+    score_threshold:int = 700
+    ) ->List[str]:
+    gene_gene_interactions = pd.read_csv(interaction_file_path,sep=" ")
+    annotations = pd.read_csv(annotation_file_path,sep="\t")
+    gene_gene_interactions = gene_gene_interactions[gene_gene_interactions['combined_score']>=score_threshold]
+    protein_ids = list(set(pd.unique(gene_gene_interactions['protein1'])).union(set(pd.unique(gene_gene_interactions['protein2']))))
+    annotations = annotations[annotations['#string_protein_id'].isin(protein_ids)]
+    gene_names = list(pd.unique(annotations['preferred_name']))
 
-        return self
+    return gene_names
+    
 
-    def transform(self, X, y=None):
-        # Perform arbitary transformation
-        X["random_int"] = randint(0, 10, X.shape[0])
-        return X
-
-#     

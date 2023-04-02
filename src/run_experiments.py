@@ -5,14 +5,11 @@ from numpy.linalg import matrix_rank, svd
 import pandas as pd 
 import sys 
 
-from lifelines.datasets import load_rossi 
-from lifelines import CoxPHFitter, WeibullAFTFitter,LogLogisticAFTFitter, LogNormalAFTFitter
-
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import LeaveOneOut
 from sklearn.manifold import TSNE
 from sklearn.model_selection import ShuffleSplit
 
@@ -21,7 +18,8 @@ from lifelines.utils import concordance_index
 from utils import *
 
 
-from metric_learn import MMC_Supervised, ITML_Supervised
+from metric_learn import MMC_Supervised, ITML_Supervised, LMNN, NCA 
+
 
 import matplotlib.pyplot as plt 
 import seaborn as sns 

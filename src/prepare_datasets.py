@@ -1,20 +1,25 @@
 import numpy as np
 import pandas as pd 
-import utils 
+import utils
+from utils import NORMAL_TISSUES
 import sys 
 import networkx as nx 
 import os 
 
 
-hallmark_genes = utils.get_hallmark_genes('./data/raw/mdsig_hallmarks.txt')
-Rx = ["Pembro","Atezo","Nivo","Ipi"]
-Rx = ["Pembro"]
+# hallmark_genes = utils.get_hallmark_genes('../data/raw/mdsig_hallmarks.txt')
+Rx = ["Pembro","Atezo","Nivo","Ipi","Ipi + Pembro","Ipi + Nivo"]
 
 
+Normal_Tissue_Medians = pd.read_csv("../data/raw/GTEx_Medians.gct",sep="\t",skiprows=2)
+Normal_Tissue_Medians = Normal_Tissue_Medians[["Name","Description"] + NORMAL_TISSUES]
 
 
-GEX_Features = pd.read_csv('./data/raw/cri/iatlas-ici-genes_norm.tsv',sep="\t")
-
+Sample_Expression_Normalized= pd.read_csv('../data/raw/cri/iatlas-ici-genes_norm.tsv',sep="\t")
+Sample_Expression_TPM = pd.read_csv("../data/raw/cri/iatlas-ici-hgnc_tpm.tsv",sep="\t")
+print("Number of Normalized Genes {n}".format(n=str(Sample_Expression_Normalized.shape[1])))
+print("Number of TPM Genes {n}".format(n=str(Sample_Expression_TPM.shape[1])))
+sys.exit(1)
 measured_genes = list(GEX_Features.columns)
 
 network_genes, gene_2_idx, idx_2_gene, adjacency_matrix = utils.fetch_pathway_commons_network(file_path = "./data/raw/PathwayCommons12.All.hgnc.sif", filter_gene_lists=[hallmark_genes,measured_genes],filter_genes=True)
@@ -44,7 +49,6 @@ for rx in Rx:
 	response_data = response_data.dropna(subset=['PFS_e','PFS_d'])
 	response_data['event'] = response_data['PFS_e'].apply(lambda x: int(x))
 	Rx_GEX = GEX_Features[GEX_Features['sample'].isin(list(pd.unique(response_data['Run_ID'])))]
-
 	tissues = list(pd.unique(response_data['TCGA_Tissue']))
 
 	for tissue in tissues:
