@@ -11,18 +11,17 @@ import os
 Rx = ["Pembro","Atezo","Nivo","Ipi","Ipi + Pembro","Ipi + Nivo"]
 
 
-Normal_Tissue_Medians = pd.read_csv("../data/raw/GTEx_Medians.gct",sep="\t",skiprows=2)
-Normal_Tissue_Medians = Normal_Tissue_Medians[["Name","Description"] + NORMAL_TISSUES]
+
+expr_prenormalized = pd.read_csv('../data/raw/cri/iatlas-ici-genes_norm.tsv',sep="\t")
+expr_NMS = pd.read_csv("../data/preprocessed/NMS_Scaled_TPM_Expression.csv",sep="\t")
 
 
-Sample_Expression_Normalized= pd.read_csv('../data/raw/cri/iatlas-ici-genes_norm.tsv',sep="\t")
-Sample_Expression_TPM = pd.read_csv("../data/raw/cri/iatlas-ici-hgnc_tpm.tsv",sep="\t")
-print("Number of Normalized Genes {n}".format(n=str(Sample_Expression_Normalized.shape[1])))
-print("Number of TPM Genes {n}".format(n=str(Sample_Expression_TPM.shape[1])))
-sys.exit(1)
 measured_genes = list(GEX_Features.columns)
 
-network_genes, gene_2_idx, idx_2_gene, adjacency_matrix = utils.fetch_pathway_commons_network(file_path = "./data/raw/PathwayCommons12.All.hgnc.sif", filter_gene_lists=[hallmark_genes,measured_genes],filter_genes=True)
+network_genes, gene_2_idx, idx_2_gene, adjacency_matrix = utils.fetch_pathway_commons_network(
+	file_path = "./data/raw/PathwayCommons12.All.hgnc.sif", 
+	filter_gene_lists=[hallmark_genes,measured_genes],
+	filter_genes=True)
 
 
 
