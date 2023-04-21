@@ -43,20 +43,6 @@ def get_hallmark_genes(
 
 
 
-def fetch_normal_expression_medians(
-    file_path:str,
-    tissues_to_keep:List[str] = ['Skin - Not Sun Exposed (Suprapubic)', 
-    'Skin - Sun Exposed (Lower leg)','Stomach','Kidney - Cortex','Kidney - Medulla','Bladder']
-    )-> pd.DataFrame:
-    
-
-    median_expression = pd.read_csv(file_path,sep="\t",skiprows=2)
-    if tissues_to_keep is not None:
-        median_expression = median_expression[["Name","Description"] + tissues_to_keep]
-    
-    return median_expression
-
-
 def fetch_pathway_commons_network(
     file_path:str,
     interaction_type = "interacts-with",

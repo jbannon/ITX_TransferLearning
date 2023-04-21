@@ -1,78 +1,129 @@
 import numpy as np
 import pandas as pd 
 import utils
-from utils import NORMAL_TISSUES
 import sys 
 import networkx as nx 
 import os 
-
+import seaborn as sns
+import pickle as pk 
 
 # hallmark_genes = utils.get_hallmark_genes('../data/raw/mdsig_hallmarks.txt')
+
+
+def log2_plus_one_transform(
+	df:pd.DataFrame
+	)->pd.DataFrame:
+	gene_names = list(df.columns[1:])
+
 Rx = ["Pembro","Atezo","Nivo","Ipi","Ipi + Pembro","Ipi + Nivo"]
 
-
-
-expr_prenormalized = pd.read_csv('../data/raw/cri/iatlas-ici-genes_norm.tsv',sep="\t")
-expr_NMS = pd.read_csv("../data/preprocessed/NMS_Scaled_TPM_Expression.csv",sep="\t")
-
-
-measured_genes = list(GEX_Features.columns)
-
-network_genes, gene_2_idx, idx_2_gene, adjacency_matrix = utils.fetch_pathway_commons_network(
-	file_path = "./data/raw/PathwayCommons12.All.hgnc.sif", 
-	filter_gene_lists=[hallmark_genes,measured_genes],
-	filter_genes=True)
+NormalizationMethods = ['TPM','LogTPM','LogTPM-Median','LogTPM-Centered','UQ','LogTPM-NormalMedian', 'LogTPM-NormalMedianFull']
 
 
 
-G = nx.from_numpy_array(adjacency_matrix)
-
-ccs = nx.connected_components(G)
-isolated_genes = []
-
-for cc in ccs: 
-	if len(cc)==1:
-		isolated_genes.append(idx_2_gene[list(cc)[0]])
+expr_UQ = pd.read_csv('../data/raw/cri/iatlas-ici-genes_norm.tsv',sep="\t")
+expr_TPM = pd.read_csv("../data/raw/cri/iatlas-ici-hgnc_tpm.tsv",sep = "\t")
 
 
-GEX_Features = GEX_Features[['sample']+network_genes]
-
-sorted_indices = sorted(list([x for x in idx_2_gene.keys()]))
-genes_in_order = [idx_2_gene[j] for j in sorted_indices]
 
 
+print(expr_TPM.head())
+sys.exit(1)
+
+
+clinical_data = pd.read_csv("../data/raw/cri/iatlas-ici-sample_info.tsv", sep= "\t")
+clinical_data['BinarizedResponse'] = clinical_data['Response'].apply(lambda x: "R" if x in ['Complete Response','Partial Response'] else "NR")
+clinical_data['Response_Class'] = pd.Categorical(clinical_data['BinarizedResponse'])
+clinical_data['Response_Class'] = clinical_data['Response_Class'].cat.codes
+clinical_data = clinical_data.dropna(subset=['Response'])
+clinical_data = clinical_data[clinical_data['Sample_Treated'] == False]
+clinical_data = clinical_data[['Run_ID','TCGA_Tissue','ICI_Rx','Response_Class']]
+clinical_data = clinical_data[clinical_data['TCGA_Tissue']!='GBM']
+sample_order = clinical_data['Run_ID'].tolist()
+
+
+clinical_data = clinical_data.set_index("Run_ID")
+expr_NMA = expr_NMA.set_index("Run_ID")
+expr_prenormalized = expr_prenormalized.set_index("sample")
+
+print("reordering samples")
+# enforce order of samples so that features and response are properly aligned
+
+clinical_data = clinical_data.loc[sample_order]
+expr_NMA = expr_NMA.loc[sample_order]
+expr_prenormalized = expr_prenormalized.loc[sample_order]
+
+clinical_data.reset_index(inplace=True)
+clinical_data.rename(columns = {'index':'Run_ID'},inplace=True)
+
+expr_NMA.reset_index(inplace=True)
+expr_NMA.rename(columns = {'index':'Run_ID'},inplace=True)
+
+expr_prenormalized.reset_index(inplace=True)
+expr_prenormalized.rename(columns = {'sample':'Run_ID'},inplace=True)
+
+expr_NMA_genes = list(expr_NMA.columns)[1:]
+NMA_idx_2_gene = {k:expr_NMA_genes[k] for k in range(len(expr_NMA_genes))}
+
+expr_prenormalized_genes = list(expr_prenormalized.columns)[1:]
+prenorm_idx_2_gene = {k:expr_prenormalized_genes[k] for k in range(len(expr_prenormalized_genes))}
+
+with open ("../data/preprocessed/nma_idx_2_gene.pk",'wb') as ostream:
+	pk.dump(NMA_idx_2_gene,ostream)
+
+
+with open ("../data/preprocessed/prenorm_idx_2_gene.pk",'wb') as ostream:
+	pk.dump(prenorm_idx_2_gene,ostream)
 
 for rx in Rx: 
-	os.makedirs("./data/preprocessed/{rx}".format(rx=rx),exist_ok=True)
-	response_data = pd.read_csv("./data/summaries/{r}.csv".format(r=rx),index_col=0)
-	response_data = response_data.dropna(subset=['PFS_e','PFS_d'])
-	response_data['event'] = response_data['PFS_e'].apply(lambda x: int(x))
-	Rx_GEX = GEX_Features[GEX_Features['sample'].isin(list(pd.unique(response_data['Run_ID'])))]
-	tissues = list(pd.unique(response_data['TCGA_Tissue']))
 
+	print("working on treatment {r}".format(r=rx))
+
+	data_dir = "../data/preprocessed/{rx}/".format(rx=rx)
+	fig_dir = "../figs/{rx}/exploratory/manifold_embeddings/".format(rx=rx)
+	os.makedirs(data_dir,exist_ok = True)
+	os.makedirs(fig_dir, exist_ok = True)
+
+	
+	rx_data = clinical_data[clinical_data['ICI_Rx']==rx]
+	
+	rx_ids = rx_data['Run_ID'].tolist()
+	
+	response = rx_data['Response_Class'].to_numpy()
+	
+	
+	rx_NMA_data = expr_NMA[expr_NMA['Run_ID'].isin(rx_ids)].drop(columns=['Run_ID']).to_numpy()
+
+	rx_norm_data = expr_prenormalized[expr_prenormalized['Run_ID'].isin(rx_ids)].drop(columns=['Run_ID']).to_numpy()
+	
+	np.savez(data_dir+"ALL_NMA.npz",X=rx_NMA_data,y=response)
+	np.savez(data_dir+"ALL_prenorm.npz",X=rx_norm_data,y=response)
+
+	
+
+	tissues = list(pd.unique(rx_data['TCGA_Tissue']))
 	for tissue in tissues:
-		tissue_df = response_data[response_data['TCGA_Tissue']==tissue]
-		tissue_df = tissue_df[['Run_ID','Response','event','PFS_d']]
+		print("working on tissue: {t}".format(t=tissue))
+		if tissue=="GBM":
+			continue 
 
-		fname = "./data/preprocessed/{rx}/{rx}_{tissue}_{src}{dst}.npz".format(rx=rx,tissue=tissue,src='C',dst='S')
+		tissue_subset = rx_data[rx_data['TCGA_Tissue']==tissue]
+		tissue_ids = tissue_subset['Run_ID'].tolist()
 
-		full_dataset = Rx_GEX.merge(tissue_df,left_on='sample',right_on='Run_ID')
-		features  = full_dataset.drop(columns=['sample','Run_ID','Response','event','PFS_d'])
+		tissue_response = tissue_subset['Response_Class'].to_numpy()
+		tissue_NMA_data = expr_NMA[expr_NMA['Run_ID'].isin(tissue_ids)].drop(columns=['Run_ID']).to_numpy()
+		tissue_norm_data = expr_prenormalized[expr_prenormalized['Run_ID'].isin(tissue_ids)].drop(columns=['Run_ID']).to_numpy()
+		np.savez(data_dir+"{t}_NMA.npz".format(t=tissue.upper()),X=tissue_NMA_data,y=tissue_response)
+		np.savez(data_dir+"{t}_prenorm.npz".format(t=tissue.upper()),X=tissue_norm_data,y=tissue_response)
+
+
+
+
 		
-		features = features[genes_in_order]
-		X = features.values
-		Y_surv = full_dataset[['PFS_d','event']].values
-		full_dataset['Response_Class'] = pd.Categorical(full_dataset['Response'])
-		full_dataset['Response_Class'] = full_dataset['Response_Class'].cat.codes
+	
 
-		class_code_map = full_dataset[['Response','Response_Class']].values
-		Y_class = class_code_map[:,1]
-		Y_class = Y_class.reshape((-1,)).astype('int64')
-		print(Y_class)
-		np.savez(fname, X=X, Y_s =Y_surv, Y_c = Y_class,adj_mat=adjacency_matrix)
-
-
-
+if __name__ == '__main__':
+	main()
 
 
 
