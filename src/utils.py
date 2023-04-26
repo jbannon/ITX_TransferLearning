@@ -1,8 +1,26 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, NamedTuple
 import numpy as np 
 import pandas as pd
 import sys
 from sklearn.base import BaseEstimator, TransformerMixin
+from collections import namedtuple
+
+
+
+
+class ICIDataSet(NamedTuple):
+
+    drug:str
+    tissue:str
+    expr_units:str
+    X:np.ndarray 
+    y:np.ndarray
+
+    patient_ids:List[str]
+
+    genes:List[str]
+
+
 
 
 TCGA_NORMAL_MAP = {

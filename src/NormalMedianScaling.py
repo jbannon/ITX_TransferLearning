@@ -11,7 +11,7 @@ Normal_Tissue_Medians = Normal_Tissue_Medians[["Name","Description"] + NORMAL_TI
 Normal_Tissue_Medians = Normal_Tissue_Medians.drop(columns=['Name'])
 
 Sample_Expression_TPM = pd.read_csv("../data/raw/cri/iatlas-ici-hgnc_tpm.tsv",sep="\t")
-
+print(Sample_Expression_TPM.shape)
 normal_measured_genes  = list(pd.unique(Normal_Tissue_Medians['Description']))
 measured_genes = list(Sample_Expression_TPM.columns)[1:]
 
@@ -31,7 +31,7 @@ normalized_df = pd.DataFrame()
 for tissue in list(pd.unique(Sample_Clinical['TCGA_Tissue'])):
 	if tissue == 'GBM':
 		continue
-	print(tissue)
+	
 	Tissue_Sample_IDs = list(Sample_Clinical[Sample_Clinical['TCGA_Tissue']==tissue].to_numpy()[:,0])
 
 	cancer_samples = Sample_Expression_TPM[Sample_Expression_TPM['Run_ID'].isin(Tissue_Sample_IDs)]

@@ -9,11 +9,8 @@ import pickle as pk
 
 # hallmark_genes = utils.get_hallmark_genes('../data/raw/mdsig_hallmarks.txt')
 
+from utils import ICIDataset
 
-def log2_plus_one_transform(
-	df:pd.DataFrame
-	)->pd.DataFrame:
-	gene_names = list(df.columns[1:])
 
 Rx = ["Pembro","Atezo","Nivo","Ipi","Ipi + Pembro","Ipi + Nivo"]
 
@@ -27,8 +24,7 @@ expr_TPM = pd.read_csv("../data/raw/cri/iatlas-ici-hgnc_tpm.tsv",sep = "\t")
 
 
 
-print(expr_TPM.head())
-sys.exit(1)
+
 
 
 clinical_data = pd.read_csv("../data/raw/cri/iatlas-ici-sample_info.tsv", sep= "\t")

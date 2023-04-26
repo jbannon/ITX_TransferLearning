@@ -1,0 +1,12 @@
+drug: "Pembro"
+
+srcPath: "../data/"
+dstPath: "../data/"
+# valid embeddings: 'GNN', 'NN', 'PCA', 'Scattering'
+embedding: 'GNN'
+
+
+network:
+  network: "STRING"
+  interaction_thresh: 900
+
