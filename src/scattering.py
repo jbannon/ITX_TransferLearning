@@ -22,8 +22,8 @@ GeometricScattering: geometric scattering transform
 """
 
 import numpy as np
-import Utils.graphTools as graphTools
-
+import graphTools as graphTools
+import networkx as nx 
 zeroTolerance = 1e-9 # Values below this number are considered zero.
 infiniteNumber = 1e12 # infinity equals this number
 
@@ -575,3 +575,24 @@ class GeometricScattering:
             rhoHx = nextRhoHx.copy()
 
         return Phi
+
+
+def main():
+    G = nx.fast_gnp_random_graph(100,0.73)
+    A = nx.adjacency_matrix(G).todense()
+    D_sqrt = np.sqrt(np.diag([val for (key,val) in G.degree()]))
+    print(D_sqrt)
+    print(D_sqrt.shape)
+    print(A)
+    A_norm = D_sqrt @ A @ D_sqrt
+    print(A_norm)
+    T= 0.5*(np.eye(A_norm.shape[1]) + A_norm)
+    print(T)
+    J = 4
+    phi = diffusionWavelets(J,T)
+    print(phi)
+    print(phi.shape)
+    DGST = DiffusionScattering()
+    pass
+if __name__ == '__main__':
+    main()

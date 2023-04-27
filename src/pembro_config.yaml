@@ -1,12 +1,30 @@
 drug: "Pembro"
+gex_transform: 'log_tpm'
+src_tissue: "SKCM"
+tgt_tissue: "STAD"
 
-srcPath: "../data/"
-dstPath: "../data/"
+input_base: "../data/preprocessed/"
+
 # valid embeddings: 'GNN', 'NN', 'PCA', 'Scattering'
-embedding: 'GNN'
+embedding: 'baselines'
+
+weighted: True
 
 
-network:
-  network: "STRING"
-  interaction_thresh: 900
+edge_processing:
+  normalize: True
+  normalization: 'MinMax'
+  min_val: 1
+  max_val: 20
 
+network: "STRING"
+
+STRING_PARAMS:
+  score_threshold: 900
+  interaction_file: "../data/raw/networks/STRINGdb/9606.protein.links.v11.5.txt"
+  annotation_file: "../data/raw/networks/STRINGdb/9606.protein.info.v11.5.txt"
+
+
+PWAYCOM_PARAMS:
+  file_path: "../data/raw/networks/PathwayCommons/PathwayCommons12.All.hgnc.sif"
+  interaction_type: 'interacts-with'

@@ -1,0 +1,11 @@
+gex_transform: 'log_tpm'
+
+drop_GBM: True
+
+expression_file: "../data/raw/cri/iatlas-ici-hgnc_tpm.tsv"
+expression_sep: "\t"
+phenotype_file: "../data/raw/cri/iatlas-ici-sample_info.tsv"
+phenotype_sep: "\t"
+
+
+output_base: "../data/preprocessed/"

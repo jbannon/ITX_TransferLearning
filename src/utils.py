@@ -20,6 +20,8 @@ class ICIDataSet(NamedTuple):
 
     genes:List[str]
 
+    genes_2_idx:Dict[str,int]
+
 
 
 
@@ -143,18 +145,29 @@ def collect_PathwayCommons_genes(
     gene_names = list(src_genes.union(dst_genes))
     return gene_names
 
-def collect_STRINGdb_genes(
-    interaction_file_path:str = "../data/raw/networks/STRINGdb/9606.protein.links.v11.5.txt",
-    annotation_file_path:str = "../data/raw/networks/STRINGdb/9606.protein.info.v11.5.txt",
+def fetch_STRINGdb(
+    interaction_file:str = "../data/raw/networks/STRINGdb/9606.protein.links.v11.5.txt",
+    annotation_file:str = "../data/raw/networks/STRINGdb/9606.protein.info.v11.5.txt",
     score_threshold:int = 700
-    ) ->List[str]:
-    gene_gene_interactions = pd.read_csv(interaction_file_path,sep=" ")
-    annotations = pd.read_csv(annotation_file_path,sep="\t")
-    gene_gene_interactions = gene_gene_interactions[gene_gene_interactions['combined_score']>=score_threshold]
-    protein_ids = list(set(pd.unique(gene_gene_interactions['protein1'])).union(set(pd.unique(gene_gene_interactions['protein2']))))
+    ) -> Tuple[List[str],pd.DataFrame]:
+
+    GGI = pd.read_csv(interaction_file,sep=" ")
+    
+    annotations = pd.read_csv(annotation_file,sep="\t")
+    GGI = GGI[GGI['combined_score']>=score_threshold]
+    protein_ids = list(set(pd.unique(GGI['protein1'])).union(set(pd.unique(GGI['protein2']))))
     annotations = annotations[annotations['#string_protein_id'].isin(protein_ids)]
     gene_names = list(pd.unique(annotations['preferred_name']))
 
-    return gene_names
+    protein_to_gene_map = {}
+    for idx, row in annotations.iterrows():
+        protein_to_gene_map[row['#string_protein_id']]=row['preferred_name']
+   
+    GGI['gene1'] = GGI['protein1'].apply(lambda x: protein_to_gene_map[x])
+    GGI['gene2'] = GGI['protein2'].apply(lambda x: protein_to_gene_map[x])
+    GGI = GGI[['gene1','gene2','combined_score']]
+    
+
+    return gene_names, GGI
     
 
